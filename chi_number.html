@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중국어 숫자 읽기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: DodgerBlue;
+            font-size: 14px;
+            margin-bottom: -10px;
+        }
+        .description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        input {
+            font-size: 32px;
+	    font-weight: bold;
+            padding: 10px;
+            margin: 10px;
+            width: 150px;
+            text-align: center;
+        }
+        button {
+            font-size: 16px;
+            padding: 0 20px;
+            cursor: pointer;
+            height: 42px;
+            vertical-align: middle;
+        }
+        .small-button {
+            font-size: 12px;
+            padding: 0 8px;
+            height: 42px;
+            margin-right: 5px;
+            vertical-align: middle;
+            white-space: pre-wrap;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: left;
+            display: inline-block;
+        }
+        .result p {
+            margin: 5px 0;
+            line-height: 1.2;
+            text-align: center; /* 가운데 정렬 유지 */
+        }
+        .result .chinese {
+            font-size: 36px;
+        }
+        .result .pinyin {
+            font-size: 20px;
+            color: #888;
+            text-align: center;
+        }
+        .message {
+            font-size: 16px; /* 글자 크기를 키움 */
+	    font-weight: normal;
+            color: red; /* 글자 색상을 빨간색으로 */
+            margin-top: 10px;
+            text-align: center; /* 가운데 정렬 */
+        }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="subtitle">by KS Jeong</div>
+    <h2>중국어 숫자 읽기 연습</h2>
+    <div class="description">0 ~ 9999까지의 숫자를 입력한 후 '확인'버튼 클릭해주세요</div>
+    
+    <div class="input-container">
+        <button class="small-button" onclick="clearResult()">모두<br>지우기</button>
+        <input type="number" id="numberInput" min="0" max="9999">
+        <button onclick="displayChineseNumber()">확인</button>
+    </div>
+
+    <div class="result" id="result">
+        <!-- 결과가 여기에 표시됩니다 -->
+    </div>
+
+    <script>
+        const units = ["", "十", "百", "千"];
+        const digits = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+        const pinyinDigits = ["", "yī", "èr", "sān", "sì", "wǔ", "liù", "qī", "bā", "jiǔ"];
+        const pinyinUnits = ["", "shí", "bǎi", "qiān"];
+
+        function convertToChinese(number) {
+            if (number === 0) return [{ chinese: "零", pinyin: "líng" }];
+
+            const numStr = number.toString();
+            let resultList = [];
+            let zeroFlag = false;
+
+            for (let i = 0; i < numStr.length; i++) {
+                const digit = parseInt(numStr[i]);
+                const unitPosition = numStr.length - 1 - i;
+
+                if (digit !== 0) {
+                    if (zeroFlag) {
+                        resultList.forEach((res) => {
+                            res.chinese += "零";
+                            res.pinyin += "líng ";
+                        });
+                        zeroFlag = false;
+                    }
+
+                    let digitStr = digits[digit];
+                    let unitStr = units[unitPosition];
+                    let digitPinyin = pinyinDigits[digit];
+                    let unitPinyin = pinyinUnits[unitPosition];
+
+                    // 숫자 1의 경우 十, 百, 千 앞에서는 4성으로 표기
+                    if (digit === 1 && unitPosition > 0) {
+                        digitPinyin = "yì";
+                    }
+
+                    if (resultList.length === 0) {
+                        resultList.push({ chinese: "", pinyin: "" });
+                    }
+
+                    resultList.forEach((res) => {
+                        res.chinese += digitStr + unitStr;
+                        res.pinyin += digitPinyin + " " + unitPinyin + " ";
+                    });
+
+                    // 백단위와 천단위에서 2는 "两"과 "二" 모두 표시, 단 일단위와 십단위의 경우에는 항상 "二"로 표시
+                    if (digit === 2 && unitPosition > 1) {
+                        let altResult = {
+                            chinese: resultList[0].chinese.slice(0, -2) + "两" + unitStr,
+                            pinyin: resultList[0].pinyin.slice(0, -digitPinyin.length - unitPinyin.length - 2) + "liǎng " + unitPinyin + " "
+                        };
+                        resultList.push(altResult);
+                    }
+
+                } else {
+                    zeroFlag = true;
+                }
+            }
+
+            // 숫자가 10~19일 때 "一十" 대신 "十"으로 표시
+            resultList.forEach((res) => {
+                if (number >= 10 && number < 20) {
+                    res.chinese = res.chinese.replace(/^一十/, '十');
+                    res.pinyin = res.pinyin.replace(/^yì shí/, 'shí');
+                }
+
+                // 끝에 오는 "零" 제거
+                if (res.chinese.endsWith("零")) {
+                    res.chinese = res.chinese.slice(0, -1);
+                    res.pinyin = res.pinyin.trim();
+                }
+            });
+
+            // 백단위와 천단위의 두 자리 숫자에 "两"을 사용한 결과 추가
+            const bothLiang = resultList[0].chinese.replace(/二千/g, "两千").replace(/二百/g, "两百");
+            if (!resultList.some(res => res.chinese === bothLiang)) {
+                const altResult = {
+                    chinese: bothLiang,
+                    pinyin: resultList[0].pinyin.replace(/èr qiān/g, "liǎng qiān").replace(/èr bǎi/g, "liǎng bǎi")
+                };
+                resultList.push(altResult);
+            }
+
+            return resultList;
+        }
+
+        function displayChineseNumber() {
+            const number = parseInt(document.getElementById('numberInput').value);
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            if (!isNaN(number) && number >= 0 && number <= 9999) {
+                const readings = convertToChinese(number);
+                readings.forEach(reading => {
+                    resultDiv.innerHTML += `<p><span class="chinese">${reading.chinese}</span><br><span class="pinyin">${reading.pinyin}</span></p>`;
+                });
+
+                const numStr = number.toString();
+                const Dm1 = parseInt(numStr[numStr.length - 1] || '0');
+                const Dm2 = parseInt(numStr[numStr.length - 2] || '0');
+                const Dm3 = parseInt(numStr[numStr.length - 3] || '0');
+                const Dm4 = parseInt(numStr[numStr.length - 4] || '0');
+
+                if (numStr.length === 3) {
+                    if (Dm1 === 0 && Dm2 !== 0 && Dm3 !== 0) {
+                        resultDiv.innerHTML += `<div class="message">*끝단위 十(shí) 생략 가능</div>`;
+                        if (Dm2 === 1) {
+                            resultDiv.innerHTML += `<div class="message">*끝단위가 생략되면 마지막에 위치한 一은 1성(yī)으로 읽어야 함</div>`;
+                        }
+                    }
+                }
+
+                if (numStr.length === 4) {
+                    if (Dm1 === 0 && Dm2 !== 0 && Dm3 !== 0 && Dm4 !== 0) {
+                        resultDiv.innerHTML += `<div class="message">*끝단위 十(shí) 생략 가능</div>`;
+                        if (Dm2 === 1) {
+                            resultDiv.innerHTML += `<div class="message">*끝단위가 생략되면 마지막에 위치한 一은 1성(yī)으로 읽어야 함</div>`;
+                        }
+                    } else if (Dm1 === 0 && Dm2 === 0 && Dm3 !== 0 && Dm4 !== 0) {
+                        resultDiv.innerHTML += `<div class="message">*끝단위 百(bǎi) 생략 가능</div>`;
+                        if (Dm3 === 1) {
+                            resultDiv.innerHTML += `<div class="message">*끝단위가 생략되면 마지막에 위치한 一은 1성(yī)으로 읽어야 함</div>`;
+                        } else if (Dm3 === 2) {
+                            resultDiv.innerHTML += `<div class="message">*끝단위가 생략되면 마지막에 위치한 2는 항상 二(èr)로 읽어야 함</div>`;
+                        }
+                    }
+                }
+
+            } else {
+                resultDiv.innerHTML = '<p>0에서 9999 사이의 숫자를 입력하세요!</p>';
+            }
+        }
+
+        function clearResult() {
+            document.getElementById('numberInput').value = '';
+            document.getElementById('result').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
+
+
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16"><span style="background-color: #f5f5f5; color: #333333; text-align: center;"><span>&nbsp;</span>가장 기본적인 중국어 숫자 읽는 방법이에요</span></p>
+<p data-ke-size="size16"><b>위 네모칸에 숫자를 입력하고 '확인' 버튼을 눌러 보세요</b></p>
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16">&lt;참고&gt; <br />한국어&nbsp;숫자(Korean&nbsp;Numbers/韩语数字) <br /><a href="https://itsagreatstart.tistory.com/m/26" target="_blank" rel="noopener&nbsp;noreferrer">https://itsagreatstart.tistory.com/m/26</a><br /><br />영어&nbsp;숫자(English&nbsp;Numbers/英文数字) <br /><a href="https://itsagreatstart.tistory.com/m/20" target="_blank" rel="noopener&nbsp;noreferrer">https://itsagreatstart.tistory.com/m/20</a></p>
+<p data-ke-size="size16">&nbsp;</p>
