@@ -1,0 +1,511 @@
+<p data-ke-size="size16">시간을 직접 입력한 후 '확인'버튼을 클릭하거나</span></p>
+<p data-ke-size="size16">무작위 '생성'버튼을 클릭하여 새로운 시간을 생성해보세요</span></p>
+<p style="color: #333333;" data-ke-size="size16"><span style="color: #ef5369;">중국어로 시간 말하는 법에 대한 설명은 화면 아래쪽에 있어요</span></p>
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16"></p>
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>시계 읽기 연습</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 40px; }
+    .time-display { font-size: 48px; margin: 20px 0; color: dodgerblue; }
+    input { width: 40px; text-align: center; font-size: 18px; }
+
+button {
+  font-size: 16px;
+  color: coral;        /* 여기서 color를 써야 함 */
+  margin-left: 10px;
+}
+
+  .translation {
+    font-size: 28px;
+    font-weight: bold;  /* 전체 공통: 굵게 */
+    margin: 10px;
+  }
+
+  .korean-text {
+    color: DarkOrchid /* 보라색계열 */
+  }
+
+  .english-text {
+    color: dodgerblue; /* 파란색계열 */
+  }
+
+  .chinese-text {
+    font-size: 30px;
+    color: red; /* 붉은색 */
+  }
+
+  /* 시계 숫자 스타일 */
+  .clock-number {
+    font-size: 14px;
+    font-weight: bold;
+    fill: #333;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+/* 복사방지 코드_텍스트선택방지 */
+body, #output, #content-container, .line, .dialogue {
+    user-select: none; /* 텍스트 선택 방지 */
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+.line {
+    -webkit-user-drag: none; /* 드래그 방지 */
+    -moz-user-drag: none;
+    -ms-user-drag: none;
+    user-drag: none;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <h1>시계 읽기 연습</h1>
+
+<!-- 이 div는 아날로그 시계 표시용입니다 -->
+<div style="margin: 30px auto;">
+  <svg id="analogClock" width="180" height="180" viewBox="0 0 240 240">
+    <!-- 시계 외곽 원 -->
+    <circle cx="120" cy="120" r="95" stroke="gray" stroke-width="4" fill="white"/>
+    
+    <!-- 시계 숫자들 (원의 중심에서 똑같은 거리 110픽셀로 배치) -->
+    <text x="120" y="15" class="clock-number">12</text>
+    <text x="174.5" y="32.5" class="clock-number">1</text>
+    <text x="215.3" y="65.3" class="clock-number">2</text>
+    <text x="230" y="120" class="clock-number">3</text>
+    <text x="215.3" y="174.7" class="clock-number">4</text>
+    <text x="174.5" y="207.5" class="clock-number">5</text>
+    <text x="120" y="225" class="clock-number">6</text>
+    <text x="65.5" y="207.5" class="clock-number">7</text>
+    <text x="24.7" y="174.7" class="clock-number">8</text>
+    <text x="10" y="120" class="clock-number">9</text>
+    <text x="24.7" y="65.3" class="clock-number">10</text>
+    <text x="65.5" y="32.5" class="clock-number">11</text>
+    
+    <!-- 시침 -->
+    <line id="hourHand" x1="120" y1="120" x2="120" y2="75" stroke="black" stroke-width="6" stroke-linecap="round"/>
+    <!-- 분침 -->
+    <line id="minuteHand" x1="120" y1="120" x2="120" y2="55" stroke="dodgerblue" stroke-width="4" stroke-linecap="round"/>
+    <!-- 중심 점 -->
+    <circle cx="120" cy="120" r="4" fill="black"/>
+  </svg>
+</div>
+
+
+
+<!-- 이 div는 시간 입력부분입니다 -->
+<div>
+  <div style="margin-bottom: 10px;">
+    <strong>직접입력 </strong>
+    <input type="number" id="hourInput" min="1" max="12" style="width: 50px;">
+    : <input type="number" id="minuteInput" min="0" max="59" style="width: 50px;">
+    <button onclick="displayTime()">확인</button>
+  </div>
+
+  <div>
+    <strong>무작위 </strong>
+    <button onclick="generateRandomTime()">생성</button>
+  </div>
+
+  <div>
+    <strong>5분 단위로 무작위 </strong>
+    <button onclick="generateRandomTimeBy5Min()">생성</button>
+  </div>
+
+</div>
+
+
+
+<!-- 이 div는 디지털 시계 숫자 표시용입니다 -->
+  <div class="time-display" id="digitalClock"></div>
+
+
+<div class="translation chinese-text" id="chineseText"></div>
+<div class="translation chinese-text" id="chineseTextAlt" style="font-weight: normal; font-size: 24px;"></div>
+<br>
+
+<div class="translation korean-text" id="koreanText"></div>
+<div class="translation korean-text" id="koreanTextAlt" style="font-weight: normal; font-size: 22px;"></div>
+
+<br>
+
+<!-- 영어는 제외
+<div class="translation english-text" id="englishText"></div>
+<div class="translation english-text" id="englishTextAlt" style="font-weight: normal; font-size: 22px;"></div>
+-->
+
+
+
+
+  <script>
+    function numToKoreanHour(h) {
+      const kor = ["열두", "한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열한"];
+      return kor[h % 12] + " 시";
+    }
+
+    function numToKoreanMinute(m) {
+      if (m === 0) return "(정각)";
+      const units = ["", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
+      const tens = ["", "십", "이십", "삼십", "사십", "오십"];
+      return (tens[Math.floor(m / 10)] || "") + (m % 10 === 0 ? "" : " " + units[m % 10]) + " 분";
+    }
+
+function numToEnglish(h, m) {
+  const nums = ["twelve","one","two","three","four","five","six","seven","eight","nine","ten","eleven"];
+  const numWords = [
+    "zero","one","two","three","four","five","six","seven","eight","nine",
+    "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen",
+    "seventeen","eighteen","nineteen","twenty","twenty-one","twenty-two",
+    "twenty-three","twenty-four","twenty-five","twenty-six","twenty-seven",
+    "twenty-eight","twenty-nine","thirty","thirty-one","thirty-two",
+    "thirty-three","thirty-four","thirty-five","thirty-six","thirty-seven",
+    "thirty-eight","thirty-nine","forty","forty-one","forty-two","forty-three",
+    "forty-four","forty-five","forty-six","forty-seven","forty-eight",
+    "forty-nine","fifty","fifty-one","fifty-two","fifty-three","fifty-four",
+    "fifty-five","fifty-six","fifty-seven","fifty-eight","fifty-nine"
+  ];
+
+  let hourStr = nums[h % 12];
+  let minuteStr = m === 0 ? "(o'clock)" : (m < 10 ? "oh " + numWords[m] : numWords[m]);
+
+  return hourStr + " " + minuteStr;
+}
+
+
+function numToChinese(h, m) {
+  const nums = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  const getChinese = (n) => {
+    if (n < 10) return nums[n];
+    if (n < 20) return "十" + (n % 10 !== 0 ? nums[n % 10] : "");
+    return nums[Math.floor(n / 10)] + "十" + (n % 10 !== 0 ? nums[n % 10] : "");
+  };
+
+  const hour = (h === 2 ? "两" : getChinese(h)) + "点";
+  if (m === 0) {
+    return hour + "(整)";
+  } else if (m < 10) {
+    return hour + "(零)" + getChinese(m) + "分";
+  } else {
+    return hour + getChinese(m) + "分";
+  }
+}
+
+
+
+// 한국어 - 대체 표현
+function numToKoreanAlt(h, m) {
+  if (m === 0) return "";  // 정각일 때 표시 안 함
+
+  if (m === 30) return numToKoreanHour(h) + " 반";
+
+  if (m < 30) {
+    return ""; // 30분 미만은 표시 안 함
+  } else {
+    let nextHour = (h % 12) + 1;
+    let beforeMinute = 60 - m;
+    return numToKoreanHour(nextHour) + " " + numToKoreanMinute(beforeMinute) + " 전";
+  }
+}
+
+// 영어 - 대체 표현
+function numToEnglishAlt(h, m) {
+  const hourWords = ["twelve","one","two","three","four","five","six","seven","eight","nine","ten","eleven"];
+  const numWords = [
+    "zero","one","two","three","four","five","six","seven","eight","nine",
+    "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen",
+    "seventeen","eighteen","nineteen","twenty","twenty-one","twenty-two",
+    "twenty-three","twenty-four","twenty-five","twenty-six","twenty-seven",
+    "twenty-eight","twenty-nine","thirty"
+  ];
+
+  let hourStr = hourWords[h % 12];
+  let nextHourStr = hourWords[(h % 12 + 1) % 12];
+
+  if (m === 0) return "";  // 정각일 때 표시 안 함
+  if (m === 30) return "half past " + hourStr;
+
+  // --- past (0 < m < 30)
+  if (m > 0 && m < 30) {
+    if (m === 15) {
+      return "a quarter past " + hourStr + "<br>fifteen past " + hourStr;
+    }
+    if ([5,10,20,25].includes(m)) {
+      return numWords[m] + " (minutes) past " + hourStr;
+    }
+    return numWords[m] + " minutes past " + hourStr;
+  }
+
+  // --- to (30 < m < 60)
+  if (m > 30 && m < 60) {
+    let beforeMinute = 60 - m;
+    if (beforeMinute === 15) {
+      return "(a) quarter to " + nextHourStr + "<br>fifteen to " + nextHourStr;
+    }
+    if ([5,10,20,25].includes(beforeMinute)) {
+      return numWords[beforeMinute] + " (minutes) to " + nextHourStr;
+    }
+    return numWords[beforeMinute] + " minutes to " + nextHourStr;
+  }
+
+  return "";
+}
+
+
+// 중국어 - 대체 표현
+function numToChineseAlt(h, m) {
+  const nums = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+  const getChinese = (n) => {
+    if (n < 10) return nums[n];
+    if (n === 10) return "十";
+    if (n < 20) return "十" + nums[n % 10];
+    return nums[Math.floor(n / 10)] + "十" + (n % 10 !== 0 ? nums[n % 10] : "");
+  };
+
+  if (m === 0) return ""; // 정각은 생략
+if (m === 15) return (h === 2 ? "两" : getChinese(h)) + "点一刻";
+if (m === 30) return (h === 2 ? "两" : getChinese(h)) + "点半";
+
+let nextHour = (h % 12) + 1;
+let beforeMinute = 60 - m;
+
+if (m === 45) {
+  return (
+    (h === 2 ? "两" : getChinese(h)) + "点三刻" + "<br>" +
+    "差一刻" + (nextHour === 2 ? "两" : getChinese(nextHour)) + "点" + "<br>" +
+    "差十五分" + (nextHour === 2 ? "两" : getChinese(nextHour)) + "点"
+  );
+}
+
+if (m < 30) return "";
+
+return "差" + getChinese(beforeMinute) + "分" + (nextHour === 2 ? "两" : getChinese(nextHour)) + "点";
+}
+
+
+
+function updateAnalogClock(h, m) {
+  const hourAngle = ((h % 12) + m / 60) * 30;  // 360도 / 12시간 = 30도
+  const minuteAngle = m * 6;                  // 360도 / 60분 = 6도
+
+  document.getElementById("hourHand").setAttribute("transform", `rotate(${hourAngle}, 120, 120)`);
+  document.getElementById("minuteHand").setAttribute("transform", `rotate(${minuteAngle}, 120, 120)`);
+}
+
+
+
+
+function displayTime() {
+  let h = parseInt(document.getElementById("hourInput").value);
+  let m = parseInt(document.getElementById("minuteInput").value);
+
+  if (isNaN(h) || isNaN(m)) {
+    return;
+  }
+
+  if (h < 1 || h > 12) {
+    alert("시(hour)는 1부터 12까지 입력해야 합니다.");
+    return;
+  }
+
+  if (m < 0 || m > 59) {
+    alert("분(minute)은 0부터 59까지 입력해야 합니다.");
+    return;
+  }
+
+  document.getElementById("digitalClock").innerHTML =
+    String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0');
+
+  // 기본 표현
+  document.getElementById("koreanText").innerHTML =
+    numToKoreanHour(h) + " " + numToKoreanMinute(m);
+
+  // 영어는 제외
+  // document.getElementById("englishText").innerHTML =
+  //   numToEnglish(h, m);
+
+  document.getElementById("chineseText").innerHTML =
+    numToChinese(h, m);
+
+
+  // 대체 표현
+  document.getElementById("koreanTextAlt").innerHTML =
+    numToKoreanAlt(h, m);
+
+  // 영어는 제외
+  // document.getElementById("englishTextAlt").innerHTML =
+   //  numToEnglishAlt(h, m);
+
+  document.getElementById("chineseTextAlt").innerHTML =
+    numToChineseAlt(h, m);
+
+updateAnalogClock(h, m); // ← analog 시계 바늘 갱신
+}
+
+
+//무작위생성 1분단위
+    function generateRandomTime() {
+      let h = Math.floor(Math.random() * 12) + 1; // 1~12
+      let m = Math.floor(Math.random() * 60);
+      document.getElementById("hourInput").value = h;
+      document.getElementById("minuteInput").value = m;
+      displayTime();
+    }
+
+//무작위생성 5분단위
+function generateRandomTimeBy5Min() {
+  let h = Math.floor(Math.random() * 12) + 1; // 1~12
+  let m = Math.floor(Math.random() * 12) * 5; // 0, 5, 10, ..., 55
+  document.getElementById("hourInput").value = h;
+  document.getElementById("minuteInput").value = m;
+  displayTime();
+}
+
+
+    // 최초 실행
+    displayTime();
+
+
+//처음 열었을때 기기의 현재시각 얻기
+window.onload = function () {
+  const now = new Date();
+  let hour = now.getHours();
+  let minute = now.getMinutes();
+
+  // 12시간제 변환
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+
+  // 먼저 값 넣기
+  document.getElementById("hourInput").value = hour;
+  document.getElementById("minuteInput").value = minute;
+
+  // 그 후에 displayTime() 실행
+  displayTime();
+};
+
+
+
+
+    // 복사방지_마우스오른쪽클릭 비활성화
+    document.addEventListener('contextmenu', (e) => e.preventDefault()); 
+
+
+  </script>
+</body>
+</html>
+
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16">&nbsp;</p>
+
+<br />
+<span style="background-color: #8a3db6; color: #ffffff;"><b>발음 참조</b></span> 
+<br />
+零líng, 一yī, 两liǎng, 二èr, 三sān, 四sì, 五wǔ, 六liù, 七qī, 八bā, 九jiǔ, 十shí, 十一shíyī, 十二shí'èr
+<br />
+<b>点</b>diǎn, <b>分</b>fēn, <b>秒</b>miǎo, <b>半</b>bàn, <b>刻</b>kè, 一刻yíkè, <b>整</b>zhěng, <b>差</b>chà
+
+<p data-ke-size="size16">&nbsp;</p>
+<p data-ke-size="size16">&nbsp;</p>
+
+<p data-ke-size="size20">
+🕒 <span style="background-color: #8a3db6; color: #ffffff;"><b>중국어로 시간 말하는 방법</b></span>
+</p>
+<br />
+
+<i>*참고: H=Hour(시), M=Minute(분) </i>
+
+<br /><br />
+1. 시각(시점)을 표현하는 기본 형태
+<br />
+<b>H<span style="color: #ef5369;">点</span>M<span style="color: #006dd7;">分</span></b> 
+<br />
+*10분 단위(10, 20, 30, 40, 50)에서는 分 생략하기도 함<br />
+*초는 秒miǎo
+
+<br /><br />
+2. 2시 일 때
+<br />
+<b><span style="color: #ef5369;">两点</span>M<span style="color: #006dd7;">分</span></b> 
+<br />
+*<span style="color: #ef5369;">2시</span>는 二이 아닌 <span style="color: #ef5369;">两</span>을 이용함에 유의
+
+
+<br /><br />
+3. 정각일 때 
+<br />
+<b>H点(整)</b> 
+<br />
+*일반적으로 H点로만 말하나, 뒤에 정각을 강조한다면 "整"을 붙이기도 함 
+
+<br /><br />
+4. 30분일 때 
+<br />
+<b>H点三十分</b> 또는 <b>H点半 </b>
+<br />
+*半을 쓸때는 分 붙이지 않음
+
+<br /><br />
+5. 15분일 때 
+<br />
+<b>H点十五分</b> 또는 <b>H点一刻</b> 
+<br />
+*一刻=15분을 의미, 刻를 쓸때는 半처럼 分 붙이지 않음
+
+<br /><br />
+6. 45분일 때 
+<br />
+<b>H点四十五分</b> 또는 <b>H点三刻</b> 
+<br />
+*一刻=15분이기에 三刻는 45분을 의미, 刻를 쓸때는 半처럼 分 붙이지 않음
+
+<br /><br />
+7. H시 1~9분일 때 
+<br />
+<b>H点(零)M分</b> 
+<br />
+*1~9분일 때는 零을 붙여주는 것이 일반적이나 생략하기도 함 
+
+<br /><br />
+8. '몇 시 몇 분 전'으로 표현할 때 
+<br />
+<b><span style="color: orchid;">差</span>60-M<span style="color: #006dd7;">分</span>H+1<span style="color: #ef5369;">点</span></b>
+ <br />
+*点과 分 위치가 달라짐에 유의
+<br />
+*15분 전은 十五分 대신 一刻 이용할 수도 있음 
+ <br />
+&rarr; 差十五分H点 또는 差一刻H点  
+
+
+<br /><br />
+9. 시각 표현 예시
+<br />
+8:45 &rarr; 八点四十五分 / 八点三刻 / 差十五分九点 / 差一刻九点 
+<br />8:15 &rarr; 八点十五分 / 八点一刻 
+<br />8:00 &rarr; 八点 / 八点整 
+<br />8:30 &rarr; 八点三十分 또는 八点半 
+<br />8:05 &rarr; 八点零五分 / 八点五分</p>
+
+
+<br /><br />
+10. 기타 : 시간의 양 말하기
+<br />
+시간의 양(몇 시간 몇 분)을 말할때는 시간에 '个小时', 분에 分钟을 붙임
+<br />
+<b>H<span style="color: #ef5369;">个小时</span>M<span style="color: #006dd7;">分钟</span></b> 
+<br /><br />
+1시간 &rarr; 一个小时
+<br />
+2시간 &rarr; 两个小时
+<br />
+30분 &rarr; 半个小时 / 三十分钟
+<br />
+15분 &rarr; 十五分钟 / 一刻钟
